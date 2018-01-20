@@ -17,5 +17,5 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 
-int libcomcom_func (void);
+char *libcomcom_run_command (const char *input);
 
