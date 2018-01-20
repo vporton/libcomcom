@@ -1,0 +1,18 @@
+We need to handle both reaping of exited child and polling pipes. To do this
+we first register a SIGCHLD handler which writes one byte to a specially
+allocated pair of pipes through which libcomcom communicates with itself
+(unlike other pairs of pipes through which libcomcom communicates with
+childs). Both kinds of pipes are watched by poll() system call. So we are
+notified both about pipe events and about deceased childs.
+
+Using this approach we use poll() do NOT need Linux specific ppoll(), because
+we will be notified about SIGCHLD in any case (either before or after EINTR
+error). See also http://250bpm.com/blog:12 about the problem with poll().
+
+We can also handle SIGTERM and SIGINT in the same way (but sending a different
+byte through the pair of pipes to differentiate between different signals).
+
+CREDITS:
+
+The approach to send one byte from SIGCHLD handler was taken from:
+https://stackoverflow.com/a/29245438/856090

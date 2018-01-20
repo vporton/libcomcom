@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+datarootdir=@datarootdir@
+datadir=@datadir@
+includedir=@includedir@/liblibcomcom-0.0.1
+
+Name: liblibcomcom
+Description: Sample library created by Anjuta project wizard.
+Version: @VERSION@
+Requires: 
+Libs: -L${libdir} -llibcomcom
+Cflags: -I${includedir}
