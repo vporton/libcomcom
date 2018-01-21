@@ -19,5 +19,6 @@
 
 #include <stddef.h>
 
+/* TODO: `char *const envp[]` */
 char *libcomcom_run_command (const char *input, size_t input_len,
-                             const char *file, char *const argv[], char *const envp[]);
+                             const char *file, char *const argv[]);

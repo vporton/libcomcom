@@ -41,7 +41,7 @@ typedef struct process_t {
 
 /* On failure NULL is returned and errno is set. */
 char *libcomcom_run_command (const char *input, size_t input_len,
-                             const char *file, char *const argv[], char *const envp[])
+                             const char *file, char *const argv[])
 {
     process_t process;
     process.input = input;
@@ -73,7 +73,7 @@ char *libcomcom_run_command (const char *input, size_t input_len,
                  fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
             return NULL;
 
-        execvpe(file, argv, envp);
+        execvp(file, argv);
 
         /* if reached here, it is execvpe() failure */
         write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
@@ -85,9 +85,11 @@ char *libcomcom_run_command (const char *input, size_t input_len,
         close(process.child[WRITE_END]);
         int errno_copy;
         ssize_t count;
-        /* read() will return 0 if execvpe() happened. */
+        /* read() will return 0 if execvpe() succeeded. */
         while ((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
             if (errno != EAGAIN && errno != EINTR) break;
         if(count) return NULL; /* FIXME: Reap the child */
     }
+
+    return NULL; /* FIXME */
 }

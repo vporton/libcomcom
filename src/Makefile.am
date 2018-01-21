@@ -8,7 +8,7 @@ AM_CPPFLAGS = \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\"
 
 AM_CFLAGS =\
-	 -Wall\
+	 -Wall -Werror\
 	 -g
 
 lib_LTLIBRARIES = libcomcom.la
@@ -17,9 +17,9 @@ lib_LTLIBRARIES = libcomcom.la
 libcomcom_la_SOURCES = \
 	lib.c
 
-libcomcom_la_LDFLAGS = 
+libcomcom_la_LDFLAGS =
 
-libcomcom_la_LIBADD = 
+libcomcom_la_LIBADD =
 
 
 
