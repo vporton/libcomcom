@@ -21,6 +21,8 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sysexits.h>
 
 #define READ_END 0
 #define WRITE_END 1
@@ -36,7 +38,6 @@ typedef struct process_t {
     size_t output_len;
 } process_t;
 
-/* FIXME: update .h file */
 char *libcomcom_run_command (const char *input, size_t input_len,
                              const char *file, char *const argv[], char *const envp[])
 {
@@ -64,7 +65,7 @@ char *libcomcom_run_command (const char *input, size_t input_len,
 
         /* https://stackoverflow.com/a/13710144/856090 trick */
         close(process.child[READ_END]);
-        fcntl(process.child[WRITE_END], F_SETFD, fcntl(pipefds[1], F_GETFD) | FD_CLOEXEC));
+        fcntl(process.child[WRITE_END], F_SETFD, fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC));
 
         execvpe(file, argv, envp);
 
