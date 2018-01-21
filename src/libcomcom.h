@@ -17,5 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 
-char *libcomcom_run_command (const char *input);
+#include <stddef.h>
 
+char *libcomcom_run_command (const char *input, size_t input_len);
