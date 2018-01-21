@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <sysexits.h>
 
@@ -38,6 +39,7 @@ typedef struct process_t {
     size_t output_len;
 } process_t;
 
+/* On failure NULL is returned and errno is set. */
 char *libcomcom_run_command (const char *input, size_t input_len,
                              const char *file, char *const argv[], char *const envp[])
 {
@@ -45,46 +47,47 @@ char *libcomcom_run_command (const char *input, size_t input_len,
     process.input = input;
     process.input_len = input_len;
     process.output = malloc(1);
+    if(!process.output) return NULL;
     process.output_len = 0;
-    pipe(process.self);
-    pipe(process.child);
-    pipe(process.stdin);
-    pipe(process.stdout);
+    if(!pipe(process.self)) return NULL;
+    if(!pipe(process.child)) return NULL;
+    if(!pipe(process.stdin)) return NULL;
+    if(!pipe(process.stdout)) return NULL;
 
     pid_t pid = fork();
-    switch(pid) {
+    switch(pid)
+    {
     case -1:
-        /* TODO */
+        return NULL;
         break;
     case 0:
-        /* TODO: check for errors. */
-        dup2(process.stdin[READ_END], STDIN_FILENO);
-        close(process.stdin[READ_END]);
-        dup2(process.stdout[WRITE_END], STDOUT_FILENO);
-        close(process.stdout[WRITE_END]);
+        /* TODO: what happens on error in the middle? */
+        if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1) return NULL;
+        if(close(process.stdin[READ_END])) return NULL;
+        if(dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1) return NULL;
+        if(close(process.stdout[WRITE_END])) return NULL;
 
         /* https://stackoverflow.com/a/13710144/856090 trick */
-        close(process.child[READ_END]);
-        fcntl(process.child[WRITE_END], F_SETFD, fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC));
+        if(close(process.child[READ_END])) return NULL;
+        if(fcntl(process.child[WRITE_END], F_SETFD,
+                 fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
+            return NULL;
 
         execvpe(file, argv, envp);
 
-        /* execvpe() failure */
+        /* if reached here, it is execvpe() failure */
         write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
         _exit(EX_OSERR);
         break;
 
-    /* TODO: https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
-    default:
+    /* https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
+    default: /* parent process */
         close(process.child[WRITE_END]);
         int errno_copy;
         ssize_t count;
         /* read() will return 0 if execvpe() happened. */
         while ((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
             if (errno != EAGAIN && errno != EINTR) break;
-        if(count) {
-            fprintf(stderr, "execvpe: %s\n", strerror(err));
-            return NULL; /* FIXME: Reap the child */
-        }
+        if(count) return NULL; /* FIXME: Reap the child */
     }
 }
