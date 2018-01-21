@@ -86,8 +86,8 @@ char *libcomcom_run_command (const char *input, size_t input_len,
         int errno_copy;
         ssize_t count;
         /* read() will return 0 if execvpe() succeeded. */
-        while ((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
-            if (errno != EAGAIN && errno != EINTR) break;
+        while((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
+            if(errno != EAGAIN && errno != EINTR) break;
         if(count) return NULL; /* FIXME: Reap the child */
     }
 
