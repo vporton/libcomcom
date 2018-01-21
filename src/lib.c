@@ -51,19 +51,39 @@ char *libcomcom_run_command (const char *input, size_t input_len,
     pipe(process.stdout);
 
     pid_t pid = fork();
-    if(pid == -1) {
+    switch(pid) {
+    case -1:
         /* TODO */
-    } if(pid == 0) {
+        break;
+    case 0:
+        /* TODO: check for errors. */
         dup2(process.stdin[READ_END], STDIN_FILENO);
         close(process.stdin[READ_END]);
         dup2(process.stdout[WRITE_END], STDOUT_FILENO);
         close(process.stdout[WRITE_END]);
 
+        /* https://stackoverflow.com/a/13710144/856090 trick */
+        close(process.child[READ_END]);
+        fcntl(process.child[WRITE_END], F_SETFD, fcntl(pipefds[1], F_GETFD) | FD_CLOEXEC));
+
         execvpe(file, argv, envp);
 
         /* execvpe() failure */
-        write(process.child[WRITE_END], &errno, sizeof(int)); /* deliberately don't check error */
+        write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
+        _exit(EX_OSERR);
+        break;
 
-        /* TODO: https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
+    /* TODO: https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
+    default:
+        close(process.child[WRITE_END]);
+        int errno_copy;
+        ssize_t count;
+        /* read() will return 0 if execvpe() happened. */
+        while ((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
+            if (errno != EAGAIN && errno != EINTR) break;
+        if(count) {
+            fprintf(stderr, "execvpe: %s\n", strerror(err));
+            return NULL; /* FIXME: Reap the child */
+        }
     }
 }
