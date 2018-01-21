@@ -20,10 +20,15 @@
 #include "libcomcom.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <sysexits.h>
+#include <limits.h>
 
 #define READ_END 0
 #define WRITE_END 1
@@ -39,18 +44,36 @@ typedef struct process_t {
     size_t output_len;
 } process_t;
 
-/* On failure NULL is returned and errno is set. */
-char *libcomcom_run_command (const char *input, size_t input_len,
-                             const char *file, char *const argv[])
+process_t process;
+
+void sigchld_handler(int sig)
 {
-    process_t process;
+    const char *c = 'e';
+    int wstatus;
+    write(process.self[WRITE_END], &c, 1);
+    (void)wait(&wstatus); /* otherwise the child becomes a zombie */
+}
+
+/* TODO: Add to public interface. */
+int libcomcom_init(void)
+{
+    if(!pipe(process.self)) return -1;
+    signal(SIGCHLD, sigchld_handler);
+}
+
+/* On failure NULL is returned and errno is set. */
+/* FIXME: interface in .h */
+void libcomcom_run_command (const char *input, size_t input_len,
+                            const char **output, size_t *output_len,
+                            const char *file, char *const argv[])
+{
     process.input = input;
     process.input_len = input_len;
     process.output = malloc(1);
     if(!process.output) return NULL;
     process.output_len = 0;
-    if(!pipe(process.self)) return NULL;
-    if(!pipe(process.child)) return NULL;
+    /* FIXME: Close the files after the end. */
+    if(!pipe(process.child)) return -1;
     if(!pipe(process.stdin)) return NULL;
     if(!pipe(process.stdout)) return NULL;
 
@@ -91,5 +114,45 @@ char *libcomcom_run_command (const char *input, size_t input_len,
         if(count) return NULL; /* FIXME: Reap the child */
     }
 
-    return NULL; /* FIXME */
+    struct pollfd fds[] = {
+        { process.self[READ_END], POLLIN },
+        { process.stdin[WRITE_END], POLLOUT },
+        { process.stdout[READ_END], POLLIN },
+    };
+    switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
+    {
+    case -1:
+        break;
+    case 0:
+        break;
+    default:
+        if(fds[0].revents & POLLIN) {
+            *output = process.output;
+            *output_len = process.output_len;
+            return;
+        }
+        if(fds[1].revents & POLLOUT) { /* TODO: POLLERR */
+            if(process.input_len) { /* needed check? */
+                size_t count = process.input_len;
+                if(count > PIPE_BUF) count = PIPE_BUF; /* atomic write */
+                ssize_t real = write(process.stdin[WRITE_END], process.input, count);
+                if(real == -1) ; /* TODO: EPIPE, EAGAIN, etc. */
+                process.input += real;
+                process.input_len -= real;
+            }
+        }
+        if(fds[2].revents & POLLIN) { /* TODO: POLLERR */
+            char buf[PIPE_BUF];
+            ssize_t real = read(process.stdout[READ_END], buf, PIPE_BUF);
+            if(real == -1) ; /* TODO: EPIPE, EAGAIN, etc. */
+            if(real > 0) {
+                process.output = realloc(process.output, process.output_len + real);
+                memcpy(process.output + process.output_len, buf, real);
+                process.output_len += real;
+            }
+        }
+    }
+
+    /* FIXME: Close the files after the end. */
+    /* TODO: kill the process on timeout */
 }
