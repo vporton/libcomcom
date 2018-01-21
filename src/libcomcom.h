@@ -17,8 +17,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 
+#ifndef LIBCOMCOM_H
+#define LIBCOMCOM_H
+
 #include <stddef.h>
 
-/* TODO: `char *const envp[]` */
-char *libcomcom_run_command (const char *input, size_t input_len,
-                             const char *file, char *const argv[]);
+int libcomcom_init(void);
+
+int libcomcom_run_command (const char *input, size_t input_len,
+                           const char **output, size_t *output_len,
+                           const char *file, char *const argv[]);
+
+#endif /* LIBCOMCOM_H */
+

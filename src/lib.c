@@ -33,7 +33,7 @@
 #define READ_END 0
 #define WRITE_END 1
 
-typedef struct process_t {
+typedef struct my_process_t {
     int self[2]; /* TODO: Make global? */
     int child[2]; /* for errno */
     int stdin[2];
@@ -42,59 +42,61 @@ typedef struct process_t {
     size_t input_len;
     char *output;
     size_t output_len;
-} process_t;
+} my_process_t;
 
-process_t process;
+my_process_t process;
 
 void sigchld_handler(int sig)
 {
-    const char *c = 'e';
+    const char c = 'e';
     int wstatus;
     write(process.self[WRITE_END], &c, 1);
     (void)wait(&wstatus); /* otherwise the child becomes a zombie */
 }
 
-/* TODO: Add to public interface. */
 int libcomcom_init(void)
 {
     if(!pipe(process.self)) return -1;
-    signal(SIGCHLD, sigchld_handler);
+    if(signal(SIGCHLD, sigchld_handler) == SIG_ERR) return -1;
+    return 0;
 }
 
-/* On failure NULL is returned and errno is set. */
-/* FIXME: interface in .h */
-void libcomcom_run_command (const char *input, size_t input_len,
-                            const char **output, size_t *output_len,
-                            const char *file, char *const argv[])
+/* On failure -1 is returned and errno is set. */
+/* FIXME: deallocate output on error. */
+/* TODO: return control on stdout close (don't confuse SIGCHLD of different processes) */
+/* TODO: Support specifying command environment */
+int libcomcom_run_command (const char *input, size_t input_len,
+                           const char **output, size_t *output_len,
+                           const char *file, char *const argv[])
 {
     process.input = input;
     process.input_len = input_len;
     process.output = malloc(1);
-    if(!process.output) return NULL;
+    if(!process.output) return -1;
     process.output_len = 0;
     /* FIXME: Close the files after the end. */
     if(!pipe(process.child)) return -1;
-    if(!pipe(process.stdin)) return NULL;
-    if(!pipe(process.stdout)) return NULL;
+    if(!pipe(process.stdin)) return -1;
+    if(!pipe(process.stdout)) return -1;
 
     pid_t pid = fork();
     switch(pid)
     {
     case -1:
-        return NULL;
+        return -1;
         break;
     case 0:
         /* TODO: what happens on error in the middle? */
-        if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1) return NULL;
-        if(close(process.stdin[READ_END])) return NULL;
-        if(dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1) return NULL;
-        if(close(process.stdout[WRITE_END])) return NULL;
+        if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1) return -1;
+        if(close(process.stdin[READ_END])) return -1;
+        if(dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1) return -1;
+        if(close(process.stdout[WRITE_END])) return -1;
 
         /* https://stackoverflow.com/a/13710144/856090 trick */
-        if(close(process.child[READ_END])) return NULL;
+        if(close(process.child[READ_END])) return -1;
         if(fcntl(process.child[WRITE_END], F_SETFD,
                  fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
-            return NULL;
+            return -1;
 
         execvp(file, argv);
 
@@ -111,7 +113,7 @@ void libcomcom_run_command (const char *input, size_t input_len,
         /* read() will return 0 if execvpe() succeeded. */
         while((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
             if(errno != EAGAIN && errno != EINTR) break;
-        if(count) return NULL; /* FIXME: Reap the child */
+        if(count) return -1;
     }
 
     struct pollfd fds[] = {
@@ -122,14 +124,23 @@ void libcomcom_run_command (const char *input, size_t input_len,
     switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
     {
     case -1:
+        {
+            int poll_errno = errno;
+            kill(pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? */
+            errno = poll_errno;
+        }
         break;
     case 0:
+        kill(pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? */
+        errno = ETIMEDOUT;
         break;
     default:
         if(fds[0].revents & POLLIN) {
+            char dummy;
+            read(process.self[READ_END], &dummy, 1);
             *output = process.output;
             *output_len = process.output_len;
-            return;
+            return 0;
         }
         if(fds[1].revents & POLLOUT) { /* TODO: POLLERR */
             if(process.input_len) { /* needed check? */
@@ -154,5 +165,5 @@ void libcomcom_run_command (const char *input, size_t input_len,
     }
 
     /* FIXME: Close the files after the end. */
-    /* TODO: kill the process on timeout */
+    return 0;
 }
