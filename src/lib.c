@@ -30,10 +30,10 @@
 #include <sysexits.h>
 #include <limits.h>
 
-#define READ_END 0
+#define READ_END  0
 #define WRITE_END 1
 
-int self[2];
+int self[2]; /* process self-communication, see HACKING */
 
 typedef struct my_process_t {
     pid_t pid;
@@ -46,7 +46,7 @@ typedef struct my_process_t {
     size_t output_len;
 } my_process_t;
 
-my_process_t process;
+my_process_t process = { 0 };
 
 void sigchld_handler(int sig)
 {
@@ -61,6 +61,10 @@ int libcomcom_init(void)
     if(!pipe(self)) return -1;
     if(signal(SIGCHLD, sigchld_handler) == SIG_ERR) return -1;
     return 0;
+}
+
+void static clean_process(my_process_t *process) {
+    /* TODO */
 }
 
 /* On failure -1 is returned and errno is set. */
@@ -110,10 +114,9 @@ int libcomcom_run_command (const char *input, size_t input_len,
     /* https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
     default: /* parent process */
         close(process.child[WRITE_END]);
-        int errno_copy;
         ssize_t count;
         /* read() will return 0 if execvpe() succeeded. */
-        while((count = read(process.child[READ_END], &errno_copy, sizeof(errno_copy))) == -1)
+        while((count = read(process.child[READ_END], &errno, sizeof(errno))) == -1)
             if(errno != EAGAIN && errno != EINTR) break;
         if(count) return -1;
     }
@@ -181,7 +184,9 @@ int libcomcom_run_command (const char *input, size_t input_len,
     return 0;
 }
 
+/* Return -1 on error. */
 int libcomcom_terminate(void)
 {
+    if(!process.pid) return 0;
     return kill(process.pid, SIGTERM);
 }
