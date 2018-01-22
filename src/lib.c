@@ -33,8 +33,10 @@
 #define READ_END 0
 #define WRITE_END 1
 
+int self[2];
+
 typedef struct my_process_t {
-    int self[2]; /* TODO: Make global? */
+    pid_t pid;
     int child[2]; /* for errno */
     int stdin[2];
     int stdout[2];
@@ -50,13 +52,13 @@ void sigchld_handler(int sig)
 {
     const char c = 'e';
     int wstatus;
-    write(process.self[WRITE_END], &c, 1);
+    write(self[WRITE_END], &c, 1);
     (void)wait(&wstatus); /* otherwise the child becomes a zombie */
 }
 
 int libcomcom_init(void)
 {
-    if(!pipe(process.self)) return -1;
+    if(!pipe(self)) return -1;
     if(signal(SIGCHLD, sigchld_handler) == SIG_ERR) return -1;
     return 0;
 }
@@ -100,7 +102,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
         execvp(file, argv);
 
-        /* if reached here, it is execvpe() failure */
+        /* if reached here, it is execvp() failure */
         write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
         _exit(EX_OSERR);
         break;
@@ -117,7 +119,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
     }
 
     struct pollfd fds[] = {
-        { process.self[READ_END], POLLIN },
+        { self[READ_END], POLLIN },
         { process.stdin[WRITE_END], POLLOUT },
         { process.stdout[READ_END], POLLIN },
     };
@@ -126,7 +128,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
     case -1:
         {
             int poll_errno = errno;
-            kill(pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? */
+            kill(process.pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? (here and in _terminate) */
             errno = poll_errno;
         }
         break;
@@ -137,25 +139,36 @@ int libcomcom_run_command (const char *input, size_t input_len,
     default:
         if(fds[0].revents & POLLIN) {
             char dummy;
-            read(process.self[READ_END], &dummy, 1);
+            read(self[READ_END], &dummy, 1);
             *output = process.output;
             *output_len = process.output_len;
             return 0;
         }
-        if(fds[1].revents & POLLOUT) { /* TODO: POLLERR */
+        /* No need to handle POLERR, as it just causes no more events. */
+        if(fds[1].revents & POLLOUT) {
             if(process.input_len) { /* needed check? */
                 size_t count = process.input_len;
+                ssize_t real;
                 if(count > PIPE_BUF) count = PIPE_BUF; /* atomic write */
-                ssize_t real = write(process.stdin[WRITE_END], process.input, count);
-                if(real == -1) ; /* TODO: EPIPE, EAGAIN, etc. */
-                process.input += real;
-                process.input_len -= real;
+                do {
+                    real = write(process.stdin[WRITE_END], process.input, count);
+                } while(real == -1 && errno = EINTR);
+                if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
+                    return -1;
+                if(real > 0) {
+                    process.input += real;
+                    process.input_len -= real;
+                }
             }
         }
-        if(fds[2].revents & POLLIN) { /* TODO: POLLERR */
+        if(fds[2].revents & POLLIN) {
             char buf[PIPE_BUF];
-            ssize_t real = read(process.stdout[READ_END], buf, PIPE_BUF);
-            if(real == -1) ; /* TODO: EPIPE, EAGAIN, etc. */
+            ssize_t real;
+            do {
+                real = read(process.stdout[READ_END], buf, PIPE_BUF);
+            } while(real == -1 && errno = EINTR);
+            if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
+                return -1;
             if(real > 0) {
                 process.output = realloc(process.output, process.output_len + real);
                 memcpy(process.output + process.output_len, buf, real);
@@ -166,4 +179,9 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
     /* FIXME: Close the files after the end. */
     return 0;
+}
+
+int libcomcom_terminate(void)
+{
+    return kill(process.pid, SIGTERM);
 }
