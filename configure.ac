@@ -13,7 +13,7 @@ AC_PROG_CC
 
 LT_INIT
 
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
+PKG_CHECK_MODULES([CHECK], [check >= 0.10])
 
 
 
