@@ -76,18 +76,18 @@ static void clean_pipe(int pipe[2]) {
 
 static void clean_process(my_process_t *process) {
     int save_errno = errno;
-    clean_pipe(process.child);
-    clean_pipe(process.stdin);
-    clean_pipe(process.stdout);
+    clean_pipe(process->child);
+    clean_pipe(process->stdin);
+    clean_pipe(process->stdout);
     errno = save_errno;
 }
 
 static void clean_process_all(my_process_t *process) {
     int save_errno = errno;
     clean_process(process);
-    if(process.output) {
-        free(process.output);
-        process.output = NULL;
+    if(process->output) {
+        free(process->output);
+        process->output = NULL;
     }
     errno = save_errno;
 }
@@ -105,7 +105,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
     if(!process.output) return -1;
     process.output_len = 0;
     if(!pipe(process.child) || !pipe(process.stdin) || !pipe(process.stdout)) {
-        clean_process(process);
+        clean_process(&process);
         return -1;
     }
 
@@ -113,7 +113,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
     switch(pid)
     {
     case -1:
-        clean_process(process);
+        clean_process(&process);
         break;
     case 0:
         /* TODO: what happens on error in the middle? */
@@ -127,7 +127,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         if(fcntl(process.child[WRITE_END], F_SETFD,
                  fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
         {
-            clean_process(process);
+            clean_process(&process);
             return -1;
         }
 
@@ -147,7 +147,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         while((count = read(process.child[READ_END], &errno, sizeof(errno))) == -1)
             if(errno != EAGAIN && errno != EINTR) break;
         if(count) {
-            clean_process_all(process);
+            clean_process_all(&process);
             return -1;
         }
     }
@@ -202,7 +202,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
                 real = read(process.stdout[READ_END], buf, PIPE_BUF);
             } while(real == -1 && errno == EINTR);
             if(real == -1 && errno != EAGAIN && errno != EPIPE) { /* if EPIPE, then no more events, ignore it */
-                clean_process_all(process);
+                clean_process_all(&process);
                 return -1;
             }
             if(real > 0) {
@@ -213,7 +213,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         }
     }
 
-    clean_process_all(process);
+    clean_process_all(&process);
     return -1;
 }
 

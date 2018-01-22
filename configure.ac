@@ -11,16 +11,9 @@ AM_SILENT_RULES([yes])
 
 AC_PROG_CC
 
-
-
-
-
-
-
-
 LT_INIT
 
-
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
 
 
@@ -28,4 +21,5 @@ AC_OUTPUT([
 Makefile
 src/libcomcom-0.0.1.pc
 src/Makefile
+tests/Makefile
 ])
