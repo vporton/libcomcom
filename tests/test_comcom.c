@@ -35,7 +35,25 @@ START_TEST(test_short_cat)
                                 "cat", argv);
     if(res == -1)
         ck_abort_msg(strerror(errno));
-    /*ck_assert_msg(sizeof(buf) == output_len, "Output buffer size");*/
+    ck_assert_int_eq(sizeof(buf), output_len);
+    ck_assert(!memcmp(output, buf, sizeof(buf)));
+}
+END_TEST
+
+START_TEST(test_long_cat)
+{
+    char buf[1000000];
+    const char *output;
+    size_t output_len;
+    char *const argv[] = { "cat", NULL };
+    int res;
+    for(int i=0; i<sizeof(buf); ++i)
+        buf[i] = i%3;
+    res = libcomcom_run_command(buf, sizeof(buf),
+                                &output, &output_len,
+                                "cat", argv);
+    if(res == -1)
+        ck_abort_msg(strerror(errno));
     ck_assert_int_eq(sizeof(buf), output_len);
     ck_assert(!memcmp(output, buf, sizeof(buf)));
 }
@@ -52,6 +70,7 @@ Suite * cat_suite(void)
     tc_core = tcase_create("Core");
 
     tcase_add_test(tc_core, test_short_cat);
+    tcase_add_test(tc_core, test_long_cat);
     suite_add_tcase(s, tc_core);
 
     return s;
