@@ -152,7 +152,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
                 if(count > PIPE_BUF) count = PIPE_BUF; /* atomic write */
                 do {
                     real = write(process.stdin[WRITE_END], process.input, count);
-                } while(real == -1 && errno = EINTR);
+                } while(real == -1 && errno == EINTR);
                 if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
                     return -1;
                 if(real > 0) {
@@ -166,7 +166,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
             ssize_t real;
             do {
                 real = read(process.stdout[READ_END], buf, PIPE_BUF);
-            } while(real == -1 && errno = EINTR);
+            } while(real == -1 && errno == EINTR);
             if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
                 return -1;
             if(real > 0) {
