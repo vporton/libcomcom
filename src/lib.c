@@ -157,63 +157,69 @@ int libcomcom_run_command (const char *input, size_t input_len,
         { process.stdin[WRITE_END], POLLOUT },
         { process.stdout[READ_END], POLLIN },
     };
-    switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
-    {
-    case -1:
+    for(;;) {
+        switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
         {
-            int poll_errno = errno;
-            kill(process.pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? (here and in _terminate) */
-            errno = poll_errno;
-        }
-        break;
-    case 0:
-        kill(pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? */
-        errno = ETIMEDOUT;
-        break;
-    default:
-        if(fds[0].revents & POLLIN) {
-            char dummy;
-            read(self[READ_END], &dummy, 1);
-            *output = process.output;
-            *output_len = process.output_len;
-            return 0;
-        }
-        /* No need to handle POLERR, as it just causes no more events. */
-        if(fds[1].revents & POLLOUT) {
-            if(process.input_len) { /* needed check? */
-                size_t count = process.input_len;
-                ssize_t real;
-                if(count > PIPE_BUF) count = PIPE_BUF; /* atomic write */
-                do {
-                    real = write(process.stdin[WRITE_END], process.input, count);
-                } while(real == -1 && errno == EINTR);
-                if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
-                    return -1;
-                if(real > 0) {
-                    process.input += real;
-                    process.input_len -= real;
-                }
-            }
-        }
-        if(fds[2].revents & POLLIN) {
-            char buf[PIPE_BUF];
-            ssize_t real;
-            do {
-                real = read(process.stdout[READ_END], buf, PIPE_BUF);
-            } while(real == -1 && errno == EINTR);
-            if(real == -1 && errno != EAGAIN && errno != EPIPE) { /* if EPIPE, then no more events, ignore it */
+        case -1:
+            {
+                int poll_errno = errno;
+                kill(process.pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? (here and in _terminate) */
+                errno = poll_errno;
                 clean_process_all(&process);
                 return -1;
             }
-            if(real > 0) {
-                process.output = realloc(process.output, process.output_len + real);
-                memcpy(process.output + process.output_len, buf, real);
-                process.output_len += real;
+            break;
+        case 0:
+            kill(pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? */
+            errno = ETIMEDOUT;
+            clean_process_all(&process);
+            return -1;
+        default:
+            if(fds[0].revents & POLLIN) {
+                char dummy;
+                read(self[READ_END], &dummy, 1);
+                *output = process.output;
+                *output_len = process.output_len;
+                clean_process(&process);
+                return 0;
+            }
+            /* No need to handle POLERR, as it just causes no more events. */
+            if(fds[1].revents & POLLOUT) {
+                if(process.input_len) { /* needed check? */
+                    size_t count = process.input_len;
+                    ssize_t real;
+                    if(count > PIPE_BUF) count = PIPE_BUF; /* atomic write */
+                    do {
+                        real = write(process.stdin[WRITE_END], process.input, count);
+                    } while(real == -1 && errno == EINTR);
+                    if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
+                        return -1;
+                    if(real > 0) {
+                        process.input += real;
+                        process.input_len -= real;
+                    }
+                }
+            }
+            if(fds[2].revents & POLLIN) {
+                char buf[PIPE_BUF];
+                ssize_t real;
+                do {
+                    real = read(process.stdout[READ_END], buf, PIPE_BUF);
+                } while(real == -1 && errno == EINTR);
+                if(real == -1 && errno != EAGAIN && errno != EPIPE) { /* if EPIPE, then no more events, ignore it */
+                    clean_process_all(&process);
+                    return -1;
+                }
+                if(real > 0) {
+                    process.output = realloc(process.output, process.output_len + real);
+                    memcpy(process.output + process.output_len, buf, real);
+                    process.output_len += real;
+                }
             }
         }
     }
 
-    clean_process_all(&process);
+    clean_process_all(&process); /* TODO: Is this code reachable? */
     return -1;
 }
 

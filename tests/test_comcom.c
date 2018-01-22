@@ -28,7 +28,7 @@ START_TEST(test_short_cat)
     char buf[3] = "qwe";
     const char *output;
     size_t output_len;
-    char *const argv[] = { "\0" };
+    char *const argv[] = { "cat", NULL };
     int res;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
