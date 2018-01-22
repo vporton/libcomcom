@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 
     s = cat_suite();
     s2 = dd_suite();
-    sr = srunner_create(s);
+    sr = srunner_create(s); /* FIXME: srunner_create(make_master_suite()) */
     srunner_add_suite(sr, cat_suite());
     srunner_add_suite(sr, dd_suite ());
 
