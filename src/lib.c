@@ -63,7 +63,7 @@ int libcomcom_init(void)
     return 0;
 }
 
-void static clean_process(my_process_t *process) {
+static void clean_process(my_process_t *process) {
     /* TODO */
 }
 
