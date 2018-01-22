@@ -101,8 +101,8 @@ int libcomcom_run_command (const char *input, size_t input_len,
 {
     process.input = input;
     process.input_len = input_len;
-    process.output = malloc(1);
-    if(!process.output) return -1;
+    *process.output = malloc(1);
+    if(!*process.output) return -1;
     process.output_len = 0;
     if(!pipe(process.child) || !pipe(process.stdin) || !pipe(process.stdout)) {
         clean_process(process);
