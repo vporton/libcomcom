@@ -31,5 +31,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
 /* Usually should be run in SIGTERM and SIGINT handlers. */
 int libcomcom_terminate(void);
 
-#endif /* LIBCOMCOM_H */
+/* Install SIGTERM and SIGINT handlers whcih call libcomcom_terminate(). */
+int libcomcom_set_default_terminate(void);
 
+#endif /* LIBCOMCOM_H */

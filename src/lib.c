@@ -46,7 +46,7 @@ typedef struct my_process_t {
     size_t output_len;
 } my_process_t;
 
-my_process_t process = { 0 };
+my_process_t process = { -1, {-1, -1}, {-1, -1}, {-1, -1}, NULL, 0, NULL, 0 };
 
 void sigchld_handler(int sig)
 {
@@ -63,12 +63,36 @@ int libcomcom_init(void)
     return 0;
 }
 
+static void clean_pipe(int pipe[2]) {
+    if(pipe[0] != -1) {
+        close(pipe[0]);
+        pipe[0] = -1;
+    }
+    if(pipe[1] != -1) {
+        close(pipe[1]);
+        pipe[1] = -1;
+    }
+}
+
 static void clean_process(my_process_t *process) {
-    /* TODO */
+    int save_errno = errno;
+    clean_pipe(process.child);
+    clean_pipe(process.stdin);
+    clean_pipe(process.stdout);
+    errno = save_errno;
+}
+
+static void clean_process_all(my_process_t *process) {
+    int save_errno = errno;
+    clean_process(process);
+    if(*process.output) {
+        free(*process.output);
+        process.output = NULL;
+    }
+    errno = save_errno;
 }
 
 /* On failure -1 is returned and errno is set. */
-/* FIXME: deallocate output on error. */
 /* TODO: return control on stdout close (don't confuse SIGCHLD of different processes) */
 /* TODO: Support specifying command environment */
 int libcomcom_run_command (const char *input, size_t input_len,
@@ -80,16 +104,16 @@ int libcomcom_run_command (const char *input, size_t input_len,
     process.output = malloc(1);
     if(!process.output) return -1;
     process.output_len = 0;
-    /* FIXME: Close the files after the end. */
-    if(!pipe(process.child)) return -1;
-    if(!pipe(process.stdin)) return -1;
-    if(!pipe(process.stdout)) return -1;
+    if(!pipe(process.child) || !pipe(process.stdin) || !pipe(process.stdout)) {
+        clean_process(process);
+        return -1;
+    }
 
     pid_t pid = fork();
     switch(pid)
     {
     case -1:
-        return -1;
+        clean_process(process);
         break;
     case 0:
         /* TODO: what happens on error in the middle? */
@@ -102,7 +126,10 @@ int libcomcom_run_command (const char *input, size_t input_len,
         if(close(process.child[READ_END])) return -1;
         if(fcntl(process.child[WRITE_END], F_SETFD,
                  fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
+        {
+            clean_process(process);
             return -1;
+        }
 
         execvp(file, argv);
 
@@ -114,11 +141,15 @@ int libcomcom_run_command (const char *input, size_t input_len,
     /* https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
     default: /* parent process */
         close(process.child[WRITE_END]);
+        process.child[WRITE_END] = -1;
         ssize_t count;
         /* read() will return 0 if execvpe() succeeded. */
         while((count = read(process.child[READ_END], &errno, sizeof(errno))) == -1)
             if(errno != EAGAIN && errno != EINTR) break;
-        if(count) return -1;
+        if(count) {
+            clean_process_all(process);
+            return -1;
+        }
     }
 
     struct pollfd fds[] = {
@@ -170,8 +201,10 @@ int libcomcom_run_command (const char *input, size_t input_len,
             do {
                 real = read(process.stdout[READ_END], buf, PIPE_BUF);
             } while(real == -1 && errno == EINTR);
-            if(real == -1 && errno != EAGAIN && errno != EPIPE) /* if EPIPE, then no more events, ignore it */
+            if(real == -1 && errno != EAGAIN && errno != EPIPE) { /* if EPIPE, then no more events, ignore it */
+                clean_process_all(process);
                 return -1;
+            }
             if(real > 0) {
                 process.output = realloc(process.output, process.output_len + real);
                 memcpy(process.output + process.output_len, buf, real);
@@ -180,13 +213,26 @@ int libcomcom_run_command (const char *input, size_t input_len,
         }
     }
 
-    /* FIXME: Close the files after the end. */
-    return 0;
+    clean_process_all(process);
+    return -1;
 }
 
 /* Return -1 on error. */
 int libcomcom_terminate(void)
 {
-    if(!process.pid) return 0;
+    if(process.pid == -1) return 0;
     return kill(process.pid, SIGTERM);
+}
+
+static void default_terminate_handler(int sig)
+{
+    libcomcom_set_default_terminate();
+}
+
+/* Return -1 on error. */
+int libcomcom_set_default_terminate(void)
+{
+    if(signal(SIGTERM, default_terminate_handler) == SIG_ERR) return -1;
+    if(signal(SIGINT , default_terminate_handler) == SIG_ERR) return -1;
+    return 0;
 }
