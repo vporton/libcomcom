@@ -85,8 +85,8 @@ static void clean_process(my_process_t *process) {
 static void clean_process_all(my_process_t *process) {
     int save_errno = errno;
     clean_process(process);
-    if(*process.output) {
-        free(*process.output);
+    if(process.output) {
+        free(process.output);
         process.output = NULL;
     }
     errno = save_errno;
@@ -101,8 +101,8 @@ int libcomcom_run_command (const char *input, size_t input_len,
 {
     process.input = input;
     process.input_len = input_len;
-    *process.output = malloc(1);
-    if(!*process.output) return -1;
+    process.output = malloc(1);
+    if(!process.output) return -1;
     process.output_len = 0;
     if(!pipe(process.child) || !pipe(process.stdin) || !pipe(process.stdout)) {
         clean_process(process);
