@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <check.h>
 #include "libcomcom.h"
 
@@ -28,9 +29,12 @@ START_TEST(test_short_cat)
     const char *output;
     size_t output_len;
     char *const argv[] = { "\0" };
-    libcomcom_run_command(buf, sizeof(buf),
-                          &output, &output_len,
-                          "cat", argv);
+    int res;
+    res = libcomcom_run_command(buf, sizeof(buf),
+                                &output, &output_len,
+                                "cat", argv);
+    if(res == -1)
+        ck_abort_msg(strerror(errno));
     /*ck_assert_msg(sizeof(buf) == output_len, "Output buffer size");*/
     ck_assert_int_eq(sizeof(buf), output_len);
     ck_assert(!memcmp(output, buf, sizeof(buf)));

@@ -58,7 +58,7 @@ void sigchld_handler(int sig)
 
 int libcomcom_init(void)
 {
-    if(!pipe(self)) return -1;
+    if(pipe(self)) return -1;
     if(signal(SIGCHLD, sigchld_handler) == SIG_ERR) return -1;
     return 0;
 }
@@ -104,7 +104,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
     process.output = malloc(1);
     if(!process.output) return -1;
     process.output_len = 0;
-    if(!pipe(process.child) || !pipe(process.stdin) || !pipe(process.stdout)) {
+    if(pipe(process.child) || pipe(process.stdin) || pipe(process.stdout)) {
         clean_process(&process);
         return -1;
     }
