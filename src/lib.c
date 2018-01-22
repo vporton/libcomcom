@@ -117,10 +117,14 @@ int libcomcom_run_command (const char *input, size_t input_len,
         break;
     case 0:
         /* TODO: what happens on error in the middle? */
-        if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1) return -1;
-        if(close(process.stdin[READ_END])) return -1;
-        if(dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1) return -1;
-        if(close(process.stdout[WRITE_END])) return -1;
+        if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1 ||
+            close(process.stdin[WRITE_END]) ||
+            dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1 ||
+            close(process.stdout[READ_END]))
+        {
+            clean_process(&process);
+            return -1;
+        }
 
         /* https://stackoverflow.com/a/13710144/856090 trick */
         if(close(process.child[READ_END])) return -1;
@@ -199,6 +203,8 @@ int libcomcom_run_command (const char *input, size_t input_len,
                         process.input_len -= real;
                     }
                 }
+                if(!process.input_len)
+                    close(process.stdin[WRITE_END]); /* let the child go */ /* FIXME: errno */
             }
             if(fds[2].revents & POLLIN) {
                 char buf[PIPE_BUF];
