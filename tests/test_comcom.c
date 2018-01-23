@@ -59,6 +59,7 @@ START_TEST(test_long_cat)
 }
 END_TEST
 
+/* CRASHES Linux!!! https://bugzilla.kernel.org/show_bug.cgi?id=198549 */
 START_TEST(test_long_dd)
 {
     char buf[1000000];
@@ -84,34 +85,18 @@ Suite * cat_suite(void)
     Suite *s;
     TCase *tc_core;
 
-    s = suite_create("Running cat command");
+    s = suite_create("Running cat or dd command");
 
     /* Core test case */
     tc_core = tcase_create("Core");
 
     tcase_add_test(tc_core, test_short_cat);
     tcase_add_test(tc_core, test_long_cat);
-    suite_add_tcase(s, tc_core);
-
-    return s;
-}
-
-Suite * dd_suite(void)
-{
-    Suite *s;
-    TCase *tc_core;
-
-    s = suite_create("Running dd command");
-
-    /* Core test case */
-    tc_core = tcase_create("Core");
-
     tcase_add_test(tc_core, test_long_dd);
     suite_add_tcase(s, tc_core);
 
     return s;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -119,14 +104,12 @@ int main(int argc, char** argv)
     libcomcom_set_default_terminate();
 
     int number_failed;
-    Suite *s, *s2;
+    Suite *s;
     SRunner *sr;
 
     s = cat_suite();
-    s2 = dd_suite();
-    sr = srunner_create(s); /* FIXME: srunner_create(make_master_suite()) */
+    sr = srunner_create(s);
     srunner_add_suite(sr, cat_suite());
-    srunner_add_suite(sr, dd_suite ());
 
     srunner_run_all(sr, CK_NORMAL);
     number_failed = srunner_ntests_failed(sr);
