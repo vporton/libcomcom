@@ -163,6 +163,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         { process.stdout[READ_END], POLLIN },
     };
     for(;;) {
+        /* FIXME: It seems after receiving SIGCHLD data to read/write may nevetheless remain. Solve this race condition. */
         switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
         {
         case -1:
