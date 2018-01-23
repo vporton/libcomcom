@@ -68,6 +68,7 @@ START_TEST(test_long_dd)
     int res;
     for(int i=0; i<sizeof(buf); ++i)
         buf[i] = i%3;
+    /* TODO: Add another test with iflag=fullblock dd argument */
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
                                 "dd", argv);
