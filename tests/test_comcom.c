@@ -59,17 +59,16 @@ START_TEST(test_long_cat)
 }
 END_TEST
 
-/* CRASHES Linux!!! https://bugzilla.kernel.org/show_bug.cgi?id=198549 */
+/* A past version of this crashed Linux: https://bugzilla.kernel.org/show_bug.cgi?id=198549 */
 START_TEST(test_long_dd)
 {
     char buf[1000000];
     const char *output;
     size_t output_len;
-    char *const argv[] = { "dd", "bs=100000", "count=10", NULL };
+    char *const argv[] = { "dd", "bs=100000", "count=10", "iflag=fullblock", NULL };
     int res;
     for(int i=0; i<sizeof(buf); ++i)
         buf[i] = i%3;
-    /* TODO: Add another test with iflag=fullblock dd argument */
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
                                 "dd", argv);
@@ -92,7 +91,7 @@ Suite * cat_suite(void)
 
     tcase_add_test(tc_core, test_short_cat);
     tcase_add_test(tc_core, test_long_cat);
-    /*tcase_add_test(tc_core, test_long_dd);*/ /* This crashes Linux!! */
+    tcase_add_test(tc_core, test_long_dd); /* This crashes Linux!! */
     suite_add_tcase(s, tc_core);
 
     return s;
