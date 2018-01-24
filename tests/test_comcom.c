@@ -92,7 +92,7 @@ Suite * cat_suite(void)
 
     tcase_add_test(tc_core, test_short_cat);
     tcase_add_test(tc_core, test_long_cat);
-    tcase_add_test(tc_core, test_long_dd);
+    /*tcase_add_test(tc_core, test_long_dd);*/ /* This crashes Linux!! */
     suite_add_tcase(s, tc_core);
 
     return s;

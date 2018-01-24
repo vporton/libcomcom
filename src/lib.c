@@ -61,7 +61,7 @@ int libcomcom_init(void)
     if(pipe(self)) return -1;
     if(signal(SIGCHLD, sigchld_handler) == SIG_ERR) return -1;
     return 0;
-
+}
 
 static void clean_pipe(int pipe[2]) {
     if(pipe[0] != -1) {
@@ -185,9 +185,34 @@ int libcomcom_run_command (const char *input, size_t input_len,
             if(fds[0].revents & POLLIN) {
                 char dummy;
                 read(self[READ_END], &dummy, 1);
+
+                /* Process is now terminated, read the remaining stdout cache. */
+                if(fcntl(process.stdout[READ_END], F_SETFL,
+                      fcntl(process.stdout[READ_END], F_GETFL) | O_NONBLOCK) == -1)
+                {
+                    clean_process_all(&process);
+                    return -1;
+                }
+                for(;;) {
+                    char buf[PIPE_BUF]; /* I think, we can safely increase this buffer. */
+                    ssize_t real;
+                    do {
+                        real = read(process.stdout[READ_END], buf, PIPE_BUF);
+                    } while(real == -1 && errno == EINTR);
+                    if(real == 0 || (real == -1 && errno == EAGAIN)) break;
+                    if(real == -1) {
+                        clean_process_all(&process);
+                        return -1;
+                    }
+                    if(real > 0) {
+                        process.output = realloc(process.output, process.output_len + real);
+                        memcpy(process.output + process.output_len, buf, real);
+                        process.output_len += real;
+                    }
+                }
+                clean_process(&process);
                 *output = process.output;
                 *output_len = process.output_len;
-                clean_process(&process);
                 return 0;
             }
             /* No need to handle POLERR, as it just causes no more events. */
