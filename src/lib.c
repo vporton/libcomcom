@@ -127,6 +127,9 @@ int libcomcom_run_command (const char *input, size_t input_len,
             return -1;
         }
 
+        if(close(self[READ_END])) return -1;
+        if(close(self[WRITE_END])) return -1;
+
         /* https://stackoverflow.com/a/13710144/856090 trick */
         if(close(process.child[READ_END])) return -1;
         if(fcntl(process.child[WRITE_END], F_SETFD,
@@ -145,8 +148,20 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
     /* https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
     default: /* parent process */
-        close(process.child[WRITE_END]);
-        process.child[WRITE_END] = -1;
+        /* TODO: Check return values. */
+        if(close(process.child[WRITE_END])) {
+            process.child[WRITE_END] = -1;
+            clean_process(&process);
+        }
+        if(close(process.stdout[WRITE_END])) {
+            process.stdout[WRITE_END] = -1;
+            clean_process(&process);
+        }
+        if(close(process.stdin[READ_END])) {
+            process.stdin[READ_END] = -1;
+            clean_process(&process);
+        }
+
         ssize_t count;
         /* read() will return 0 if execvpe() succeeded. */
         while((count = read(process.child[READ_END], &errno, sizeof(errno))) == -1)
@@ -187,19 +202,19 @@ int libcomcom_run_command (const char *input, size_t input_len,
                 read(self[READ_END], &dummy, 1);
 
                 /* Process is now terminated, read the remaining stdout cache. */
-                if(fcntl(process.stdout[READ_END], F_SETFL,
-                      fcntl(process.stdout[READ_END], F_GETFL) | O_NONBLOCK) == -1)
-                {
-                    clean_process_all(&process);
-                    return -1;
-                }
+//                if(fcntl(process.stdout[READ_END], F_SETFL,
+//                      fcntl(process.stdout[READ_END], F_GETFL) | O_NONBLOCK) == -1)
+//                {
+//                    clean_process_all(&process);
+//                    return -1;
+//                }
                 for(;;) {
                     char buf[PIPE_BUF]; /* I think, we can safely increase this buffer. */
                     ssize_t real;
                     do {
                         real = read(process.stdout[READ_END], buf, PIPE_BUF);
                     } while(real == -1 && errno == EINTR);
-                    if(real == 0 || (real == -1 && errno == EAGAIN)) break;
+                    if(real == 0) break;
                     if(real == -1) {
                         clean_process_all(&process);
                         return -1;
