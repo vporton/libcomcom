@@ -151,6 +151,7 @@ static void clean_process(my_process_t *process) {
     clean_pipe(process->child);
     clean_pipe(process->stdin);
     clean_pipe(process->stdout);
+    process->pid = -1;
     errno = save_errno;
 }
 
@@ -229,6 +230,8 @@ int libcomcom_run_command (const char *input, size_t input_len,
             clean_process(&process);
         }
 
+        process.pid = pid;
+
         ssize_t count;
         /* read() will return 0 if execvpe() succeeded. */
         while((count = read(process.child[READ_END], &errno, sizeof(errno))) == -1)
@@ -258,7 +261,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
             }
             break;
         case 0:
-            kill(pid, SIGTERM);
+            kill(process.pid, SIGTERM);
             errno = ETIMEDOUT;
             clean_process_all(&process);
             return -1;
