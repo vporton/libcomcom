@@ -186,14 +186,14 @@ int libcomcom_run_command (const char *input, size_t input_len,
         case -1:
             {
                 int poll_errno = errno;
-                kill(process.pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? (here and in _terminate) */
+                kill(process.pid, SIGTERM);
                 errno = poll_errno;
                 clean_process_all(&process);
                 return -1;
             }
             break;
         case 0:
-            kill(pid, SIGTERM); /* TODO: SIGKILL on a greater timeout? */
+            kill(pid, SIGTERM);
             errno = ETIMEDOUT;
             clean_process_all(&process);
             return -1;
