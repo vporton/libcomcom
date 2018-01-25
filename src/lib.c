@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 
+#include "config.h"
 #include "libcomcom.h"
 
 #include <stdlib.h>
@@ -29,6 +30,63 @@
 #include <poll.h>
 #include <sysexits.h>
 #include <limits.h>
+
+#ifndef HAVE_EXECVPE
+/* from https://github.com/canalplus/r7oss/blob/master/G5/src/klibc-1.5.15/usr/klibc/execvpe.c */
+#define DEFAULT_PATH 	"/bin:/usr/bin:."
+
+static int execvpe(const char *file, char *const *argv, char *const *envp)
+{
+	char path[PATH_MAX];
+	const char *searchpath, *esp;
+	size_t prefixlen, filelen, totallen;
+
+	if (strchr(file, '/'))	/* Specific path */
+		return execve(file, argv, envp);
+
+	filelen = strlen(file);
+
+	searchpath = getenv("PATH");
+	if (!searchpath)
+		searchpath = DEFAULT_PATH;
+
+	errno = ENOENT;		/* Default errno, if execve() doesn't
+				   change it */
+
+	do {
+		esp = strchr(searchpath, ':');
+		if (esp)
+			prefixlen = esp - searchpath;
+		else
+			prefixlen = strlen(searchpath);
+
+		if (prefixlen == 0 || searchpath[prefixlen - 1] == '/') {
+			totallen = prefixlen + filelen;
+			if (totallen >= PATH_MAX)
+				continue;
+			memcpy(path, searchpath, prefixlen);
+			memcpy(path + prefixlen, file, filelen);
+		} else {
+			totallen = prefixlen + filelen + 1;
+			if (totallen >= PATH_MAX)
+				continue;
+			memcpy(path, searchpath, prefixlen);
+			path[prefixlen] = '/';
+			memcpy(path + prefixlen + 1, file, filelen);
+		}
+		path[totallen] = '\0';
+
+		execve(path, argv, envp);
+		if (errno == E2BIG  || errno == ENOEXEC ||
+		    errno == ENOMEM || errno == ETXTBSY)
+			break;	/* Report this as an error, no more search */
+
+		searchpath = esp + 1;
+	} while (esp);
+
+	return -1;
+}
+#endif
 
 #define READ_END  0
 #define WRITE_END 1
@@ -99,11 +157,11 @@ static void clean_process_all(my_process_t *process) {
 }
 
 /* On failure -1 is returned and errno is set. */
-/* TODO: Support specifying command environment */
 /* Timeout in millisecs, -1 means infinite timeout */
 int libcomcom_run_command (const char *input, size_t input_len,
                            const char **output, size_t *output_len,
                            const char *file, char *const argv[],
+                           char *const envp[],
                            int timeout)
 {
     process.input = input;
@@ -144,9 +202,9 @@ int libcomcom_run_command (const char *input, size_t input_len,
             return -1;
         }
 
-        execvp(file, argv);
+        execvpe(file, argv, envp);
 
-        /* If reached here, it is execvp() failure. */
+        /* If reached here, it is execvpe() failure. */
         /* No need to check EINTR, because there is no signal handlers. */
         write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
         _exit(EX_OSERR);

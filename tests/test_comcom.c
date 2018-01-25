@@ -23,6 +23,8 @@
 #include <check.h>
 #include "libcomcom.h"
 
+extern char **environ;
+
 void setup(void)
 {
     libcomcom_init();
@@ -43,7 +45,7 @@ START_TEST(test_short_cat)
     int res;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
-                                "cat", argv,
+                                "cat", argv, environ,
                                 5000);
     if(res == -1)
         ck_abort_msg(strerror(errno));
@@ -63,7 +65,7 @@ START_TEST(test_long_cat)
         buf[i] = i%3;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
-                                "cat", argv,
+                                "cat", argv, environ,
                                 5000);
     if(res == -1)
         ck_abort_msg(strerror(errno));
@@ -84,7 +86,7 @@ START_TEST(test_long_dd)
         buf[i] = i%3;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
-                                "dd", argv,
+                                "dd", argv, environ,
                                 5000);
     if(res == -1)
         ck_abort_msg(strerror(errno));
