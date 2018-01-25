@@ -15,7 +15,7 @@ AC_PROG_CC
 
 LT_INIT
 
-AC_CHECK_FUNCS(execvpe)
+AC_CHECK_DECLS([execvpe], [], [], [[#include <unistd.h>]])
 
 PKG_CHECK_MODULES([CHECK], [check >= 0.10])
 

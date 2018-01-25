@@ -31,7 +31,7 @@
 #include <sysexits.h>
 #include <limits.h>
 
-#ifndef HAVE_EXECVPE
+#if !HAVE_DECL_EXECVPE
 /* from https://github.com/canalplus/r7oss/blob/master/G5/src/klibc-1.5.15/usr/klibc/execvpe.c */
 #define DEFAULT_PATH 	"/bin:/usr/bin:."
 
