@@ -31,7 +31,7 @@ void setup(void)
 
 void teardown(void)
 {
-    /* FIXME */
+    libcomcom_destroy();
 }
 
 START_TEST(test_short_cat)

@@ -28,6 +28,9 @@ int libcomcom_run_command (const char *input, size_t input_len,
                            const char **output, size_t *output_len,
                            const char *file, char *const argv[]);
 
+/* Should be run for normal termination (not in SIGTERM/SEGINT handler. */
+int libcomcom_destroy(void);
+
 /* Usually should be run in SIGTERM and SIGINT handlers. */
 int libcomcom_terminate(void);
 

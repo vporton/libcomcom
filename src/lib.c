@@ -275,8 +275,22 @@ int libcomcom_run_command (const char *input, size_t input_len,
 /* Return -1 on error. */
 int libcomcom_terminate(void)
 {
+    libcomcom_destroy();
     if(process.pid == -1) return 0;
     return kill(process.pid, SIGTERM);
+}
+
+/* Return -1 on error. */
+int libcomcom_destroy(void)
+{
+    if(close(self[READ_END])) {
+        close(self[WRITE_END]);
+        return -1;
+    }
+    if(close(self[WRITE_END])) {
+        return -1;
+    }
+    return 0;
 }
 
 static void default_terminate_handler(int sig)
