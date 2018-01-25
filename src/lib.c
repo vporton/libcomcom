@@ -246,7 +246,10 @@ int libcomcom_run_command (const char *input, size_t input_len,
                     }
                 }
                 if(!process.input_len)
-                    close(process.stdin[WRITE_END]); /* let the child go */ /* FIXME: errno */
+                    if(close(process.stdin[WRITE_END])) {/* let the child go */
+                        clean_process_all(&process);
+                        return -1;
+                    }
             }
             if(fds[2].revents & POLLIN) {
                 char buf[PIPE_BUF];
