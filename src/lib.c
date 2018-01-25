@@ -52,12 +52,14 @@ void sigchld_handler(int sig)
 {
     const char c = 'e';
     int wstatus;
-    int len;
+    int len, res;
     /* necessary to catch EINTR? can a signal handler be interrupted? */
     do {
         len = write(self[WRITE_END], &c, 1);
     } while(len == -1 && errno == EINTR);
-    (void)wait(&wstatus); /* otherwise the child becomes a zombie */
+    do {
+        res = wait(&wstatus); /* otherwise the child becomes a zombie */
+    } while(res == -1 && errno == EINTR);
 }
 
 int libcomcom_init(void)
