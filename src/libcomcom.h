@@ -24,7 +24,7 @@
 
 /**
  * Initialize the library. Call it before libcomcom_run_command().
- * @return 0 on success and -1 on error (also sets errno).
+ * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_init(void);
 
@@ -32,13 +32,13 @@ int libcomcom_init(void);
  * Runs an OS command.
  * @param input passed to command stdin
  * @param input_len the length of the string passed to stdin
- * @param output at this location is stored the command's stdout
+ * @param output at this location is stored the command's stdout (call `free()` after use)
  * @param output_len at this location is stored the length of command's stdout
  * @param file the command to run (PATH used)
  * @param argv arguments for the command to run
- * @param envp environment for the command to run (pass environ to duplicate our environment
+ * @param envp environment for the command to run (pass environ to duplicate our environment)
  * @param timeout timeout in milliseconds, -1 means infinite timeout
- * @return 0 on success and -1 on error (also sets errno).
+ * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_run_command(const char *input, size_t input_len,
                           const char **output, size_t *output_len,
@@ -48,13 +48,13 @@ int libcomcom_run_command(const char *input, size_t input_len,
 
 /**
  * Should be run for normal termination (not in SIGTERM/SIGINT handler)
- * @return 0 on success and -1 on error (also sets errno).
+ * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_destroy(void);
 
 /**
  * Usually should be run in SIGTERM and SIGINT handlers.
- * @return 0 on success and -1 on error (also sets errno).
+ * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_terminate(void);
 
@@ -62,7 +62,7 @@ int libcomcom_terminate(void);
  * Install SIGTERM and SIGINT handler which calls libcomcom_terminate().
  * If your program needs to handle SIGTERM or SIGINT in another way,
  * use libcomcom_terminate() instead.
- * @return 0 on success and -1 on error (also sets errno).
+ * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_set_default_terminate(void);
 
