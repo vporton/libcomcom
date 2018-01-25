@@ -188,13 +188,12 @@ int libcomcom_run_command (const char *input, size_t input_len,
     case -1:
         clean_process(&process);
         break;
-    case 0:
+    case 0: /* child process */
         if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1 ||
             myclose(process.stdin[WRITE_END]) ||
             dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1 ||
             myclose(process.stdout[READ_END]))
         {
-            clean_process(&process);
             return -1;
         }
 
@@ -206,7 +205,6 @@ int libcomcom_run_command (const char *input, size_t input_len,
         if(fcntl(process.child[WRITE_END], F_SETFD,
                  fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
         {
-            clean_process(&process);
             return -1;
         }
 
@@ -314,7 +312,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
                     }
                 }
                 if(!process.input_len)
-                    if(myclose(process.stdin[WRITE_END])) {/* let the child go */
+                    if(myclose(process.stdin[WRITE_END])) { /* let the child go */
                         clean_process_all(&process);
                         return -1;
                     }
