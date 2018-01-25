@@ -244,7 +244,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         switch(poll(fds, 3, timeout))
         {
         case -1:
-            {
+            if(errno != EINTR) {
                 int poll_errno = errno;
                 kill(process.pid, SIGTERM);
                 errno = poll_errno;
