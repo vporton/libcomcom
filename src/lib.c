@@ -120,7 +120,6 @@ int libcomcom_run_command (const char *input, size_t input_len,
         clean_process(&process);
         break;
     case 0:
-        /* TODO: what happens on error in the middle? */
         if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1 ||
             close(process.stdin[WRITE_END]) ||
             dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1 ||
@@ -152,7 +151,6 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
     /* https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
     default: /* parent process */
-        /* TODO: Check return values. */
         if(close(process.child[WRITE_END])) {
             process.child[WRITE_END] = -1;
             clean_process(&process);
@@ -270,8 +268,11 @@ int libcomcom_run_command (const char *input, size_t input_len,
         }
     }
 
-    clean_process_all(&process); /* TODO: Is this code reachable? */
+    /* unreachable code */
+    /*
+    clean_process_all(&process);
     return -1;
+    */
 }
 
 /* Return -1 on error. */
