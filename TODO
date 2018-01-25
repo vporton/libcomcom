@@ -1,0 +1,4 @@
+If the called program closed its stdout but not yet exited, return its output
+immediately, because in this situation it makes no sense to wait for it to
+terminate. Implementing this feature, be careful not to confuse SIGCHLD of
+different processes.
