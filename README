@@ -2,4 +2,7 @@
 
 Spawn an OS command with given input and receive its output.
 
+API docs:
+https://vporton.github.io/libcomcom-docs/
+
 The current version is alpha.
