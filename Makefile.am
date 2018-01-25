@@ -20,6 +20,8 @@ uninstall-local:
 
 @DX_RULES@
 
-doc: doxygen-run
+doc: html
+
+html: doxygen-run
 
 MOSTLYCLEANFILES = $(DX_CLEANFILES)
