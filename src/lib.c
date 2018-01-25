@@ -241,6 +241,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         { process.stdout[READ_END], POLLIN },
     };
     for(;;) {
+        /* FIXME: timeout should apply to the entire time commands run, not on i/o operation. */
         switch(poll(fds, 3, timeout))
         {
         case -1:
