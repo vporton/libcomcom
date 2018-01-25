@@ -52,7 +52,11 @@ void sigchld_handler(int sig)
 {
     const char c = 'e';
     int wstatus;
-    write(self[WRITE_END], &c, 1);
+    int len;
+    /* necessary to catch EINTR? can a signal handler be interrupted? */
+    do {
+        len = write(self[WRITE_END], &c, 1);
+    } while(len == -1 && errno == EINTR);
     (void)wait(&wstatus); /* otherwise the child becomes a zombie */
 }
 
@@ -141,7 +145,8 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
         execvp(file, argv);
 
-        /* if reached here, it is execvp() failure */
+        /* If reached here, it is execvp() failure. */
+        /* No need to check EINTR, because there is no signal handlers. */
         write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
         _exit(EX_OSERR);
         break;
@@ -178,8 +183,6 @@ int libcomcom_run_command (const char *input, size_t input_len,
         { process.stdout[READ_END], POLLIN },
     };
     for(;;) {
-        /* FIXME: It seems after receiving SIGCHLD data to read/write may nevetheless remain.
-           Solve this race condition. Also test it under strace and firejail. */
         switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
         {
         case -1:
@@ -199,15 +202,12 @@ int libcomcom_run_command (const char *input, size_t input_len,
         default:
             if(fds[0].revents & POLLIN) {
                 char dummy;
-                read(self[READ_END], &dummy, 1);
+                int dummy_len;
+                do {
+                    dummy_len = read(self[READ_END], &dummy, 1);
+                } while(dummy_len == -1 && errno == EINTR);
 
                 /* Process is now terminated, read the remaining stdout cache. */
-//                if(fcntl(process.stdout[READ_END], F_SETFL,
-//                      fcntl(process.stdout[READ_END], F_GETFL) | O_NONBLOCK) == -1)
-//                {
-//                    clean_process_all(&process);
-//                    return -1;
-//                }
                 for(;;) {
                     char buf[PIPE_BUF]; /* I think, we can safely increase this buffer. */
                     ssize_t real;
