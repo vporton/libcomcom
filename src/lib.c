@@ -164,8 +164,6 @@ static void clean_process_all(my_process_t *process) {
     errno = save_errno;
 }
 
-/* On failure -1 is returned and errno is set. */
-/* Timeout in millisecs, -1 means infinite timeout */
 int libcomcom_run_command (const char *input, size_t input_len,
                            const char **output, size_t *output_len,
                            const char *file, char *const argv[],
@@ -343,7 +341,6 @@ int libcomcom_run_command (const char *input, size_t input_len,
     */
 }
 
-/* Return -1 on error. */
 int libcomcom_terminate(void)
 {
     libcomcom_destroy();
@@ -351,7 +348,6 @@ int libcomcom_terminate(void)
     return kill(process.pid, SIGTERM);
 }
 
-/* Return -1 on error. */
 int libcomcom_destroy(void)
 {
     if(myclose(self[READ_END])) {
@@ -369,7 +365,6 @@ static void default_terminate_handler(int sig)
     libcomcom_set_default_terminate();
 }
 
-/* Return -1 on error. */
 int libcomcom_set_default_terminate(void)
 {
     if(signal(SIGTERM, default_terminate_handler) == SIG_ERR) return -1;
