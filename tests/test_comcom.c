@@ -23,6 +23,17 @@
 #include <check.h>
 #include "libcomcom.h"
 
+void setup(void)
+{
+    libcomcom_init();
+    libcomcom_set_default_terminate();
+}
+
+void teardown(void)
+{
+    /* FIXME */
+}
+
 START_TEST(test_short_cat)
 {
     char buf[3] = "qwe";
@@ -89,6 +100,7 @@ Suite * cat_suite(void)
     /* Core test case */
     tc_core = tcase_create("Core");
 
+    tcase_add_checked_fixture(tc_core, setup, teardown);
     tcase_add_test(tc_core, test_short_cat);
     tcase_add_test(tc_core, test_long_cat);
     tcase_add_test(tc_core, test_long_dd); /* This crashes Linux!! */
@@ -99,9 +111,6 @@ Suite * cat_suite(void)
 
 int main(int argc, char** argv)
 {
-    libcomcom_init();
-    libcomcom_set_default_terminate();
-
     int number_failed;
     Suite *s;
     SRunner *sr;
