@@ -36,7 +36,7 @@ int libcomcom_init(void);
  * @param output_len at this location is stored the length of command's stdout
  * @param file the command to run (PATH used)
  * @param argv arguments for the command to run
- * @param envp environment for the command to run (pass environ to duplicate our environment)
+ * @param envp environment for the command to run (pass `environ` to duplicate our environment)
  * @param timeout timeout in milliseconds, -1 means infinite timeout
  * @return 0 on success and -1 on error (also sets `errno`).
  */
