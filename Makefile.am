@@ -17,3 +17,9 @@ dist_doc_DATA = \
 # Remove doc directory on uninstall
 uninstall-local:
 	-rm -r $(docdir)
+
+@DX_RULES@
+
+doc: doxygen-run
+
+MOSTLYCLEANFILES = $(DX_CLEANFILES)
