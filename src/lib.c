@@ -100,9 +100,11 @@ static void clean_process_all(my_process_t *process) {
 
 /* On failure -1 is returned and errno is set. */
 /* TODO: Support specifying command environment */
+/* Timeout in millisecs, -1 means infinite timeout */
 int libcomcom_run_command (const char *input, size_t input_len,
                            const char **output, size_t *output_len,
-                           const char *file, char *const argv[])
+                           const char *file, char *const argv[],
+                           int timeout)
 {
     process.input = input;
     process.input_len = input_len;
@@ -181,7 +183,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
         { process.stdout[READ_END], POLLIN },
     };
     for(;;) {
-        switch(poll(fds, 3, 5000)) /* TODO: configurable timeout */
+        switch(poll(fds, 3, timeout))
         {
         case -1:
             {

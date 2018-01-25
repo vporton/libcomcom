@@ -43,7 +43,8 @@ START_TEST(test_short_cat)
     int res;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
-                                "cat", argv);
+                                "cat", argv,
+                                5000);
     if(res == -1)
         ck_abort_msg(strerror(errno));
     ck_assert_int_eq(sizeof(buf), output_len);
@@ -62,7 +63,8 @@ START_TEST(test_long_cat)
         buf[i] = i%3;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
-                                "cat", argv);
+                                "cat", argv,
+                                5000);
     if(res == -1)
         ck_abort_msg(strerror(errno));
     ck_assert_int_eq(sizeof(buf), output_len);
@@ -82,7 +84,8 @@ START_TEST(test_long_dd)
         buf[i] = i%3;
     res = libcomcom_run_command(buf, sizeof(buf),
                                 &output, &output_len,
-                                "dd", argv);
+                                "dd", argv,
+                                5000);
     if(res == -1)
         ck_abort_msg(strerror(errno));
     ck_assert_int_eq(sizeof(buf), output_len);
