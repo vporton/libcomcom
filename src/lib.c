@@ -127,13 +127,21 @@ int libcomcom_init(void)
     return 0;
 }
 
+static int myclose(int fd) {
+    int res;
+    do {
+        res = close(fd);
+    } while(res == -1 && errno == EINTR);
+    return res;
+}
+
 static void clean_pipe(int pipe[2]) {
     if(pipe[0] != -1) {
-        close(pipe[0]);
+        myclose(pipe[0]);
         pipe[0] = -1;
     }
     if(pipe[1] != -1) {
-        close(pipe[1]);
+        myclose(pipe[1]);
         pipe[1] = -1;
     }
 }
@@ -182,19 +190,19 @@ int libcomcom_run_command (const char *input, size_t input_len,
         break;
     case 0:
         if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1 ||
-            close(process.stdin[WRITE_END]) ||
+            myclose(process.stdin[WRITE_END]) ||
             dup2(process.stdout[WRITE_END], STDOUT_FILENO) == -1 ||
-            close(process.stdout[READ_END]))
+            myclose(process.stdout[READ_END]))
         {
             clean_process(&process);
             return -1;
         }
 
-        if(close(self[READ_END])) return -1;
-        if(close(self[WRITE_END])) return -1;
+        if(myclose(self[READ_END])) return -1;
+        if(myclose(self[WRITE_END])) return -1;
 
         /* https://stackoverflow.com/a/13710144/856090 trick */
-        if(close(process.child[READ_END])) return -1;
+        if(myclose(process.child[READ_END])) return -1;
         if(fcntl(process.child[WRITE_END], F_SETFD,
                  fcntl(process.child[WRITE_END], F_GETFD) | FD_CLOEXEC) == -1)
         {
@@ -212,15 +220,15 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
     /* https://stackoverflow.com/q/1584956/856090 & https://stackoverflow.com/q/13710003/856090 */
     default: /* parent process */
-        if(close(process.child[WRITE_END])) {
+        if(myclose(process.child[WRITE_END])) {
             process.child[WRITE_END] = -1;
             clean_process(&process);
         }
-        if(close(process.stdout[WRITE_END])) {
+        if(myclose(process.stdout[WRITE_END])) {
             process.stdout[WRITE_END] = -1;
             clean_process(&process);
         }
-        if(close(process.stdin[READ_END])) {
+        if(myclose(process.stdin[READ_END])) {
             process.stdin[READ_END] = -1;
             clean_process(&process);
         }
@@ -306,7 +314,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
                     }
                 }
                 if(!process.input_len)
-                    if(close(process.stdin[WRITE_END])) {/* let the child go */
+                    if(myclose(process.stdin[WRITE_END])) {/* let the child go */
                         clean_process_all(&process);
                         return -1;
                     }
@@ -348,11 +356,11 @@ int libcomcom_terminate(void)
 /* Return -1 on error. */
 int libcomcom_destroy(void)
 {
-    if(close(self[READ_END])) {
-        close(self[WRITE_END]);
+    if(myclose(self[READ_END])) {
+        myclose(self[WRITE_END]);
         return -1;
     }
-    if(close(self[WRITE_END])) {
+    if(myclose(self[WRITE_END])) {
         return -1;
     }
     return 0;
