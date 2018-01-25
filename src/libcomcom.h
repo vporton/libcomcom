@@ -20,6 +20,10 @@
 #ifndef LIBCOMCOM_H
 #define LIBCOMCOM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 
 /**
@@ -65,5 +69,9 @@ int libcomcom_terminate(void);
  * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_set_default_terminate(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* LIBCOMCOM_H */
