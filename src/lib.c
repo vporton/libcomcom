@@ -99,7 +99,6 @@ static void clean_process_all(my_process_t *process) {
 /* On failure -1 is returned and errno is set. */
 /* TODO: return control on stdout close (don't confuse SIGCHLD of different processes) */
 /* TODO: Support specifying command environment */
-/* FIXME: It seems that EINTR is not always handled! */
 int libcomcom_run_command (const char *input, size_t input_len,
                            const char **output, size_t *output_len,
                            const char *file, char *const argv[])
