@@ -186,6 +186,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
     {
     case -1:
         clean_process(&process);
+        return -1;
         break;
     case 0: /* child process */
         if(dup2(process.stdin[READ_END], STDIN_FILENO) == -1 ||
