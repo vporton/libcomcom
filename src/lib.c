@@ -221,14 +221,17 @@ int libcomcom_run_command (const char *input, size_t input_len,
         if(myclose(process.child[WRITE_END])) {
             process.child[WRITE_END] = -1;
             clean_process(&process);
+            return -1;
         }
         if(myclose(process.stdout[WRITE_END])) {
             process.stdout[WRITE_END] = -1;
             clean_process(&process);
+            return -1;
         }
         if(myclose(process.stdin[READ_END])) {
             process.stdin[READ_END] = -1;
             clean_process(&process);
+            return -1;
         }
 
         process.pid = pid;
