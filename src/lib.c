@@ -111,7 +111,6 @@ void sigchld_handler(int sig)
     const char c = 'e';
     int wstatus;
     int len, res;
-    /* necessary to catch EINTR? can a signal handler be interrupted? */
     do {
         len = write(self[WRITE_END], &c, 1);
     } while(len == -1 && errno == EINTR);
