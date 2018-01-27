@@ -363,6 +363,7 @@ int libcomcom_destroy(void)
     if(myclose(self[WRITE_END])) {
         return -1;
     }
+    /* TODO: unset signal handlers */
     return 0;
 }
 
