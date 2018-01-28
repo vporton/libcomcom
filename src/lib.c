@@ -124,7 +124,11 @@ void sigchld_handler(int sig)
 int libcomcom_init(void)
 {
     if(pipe(self)) return -1;
-    if(signal(SIGCHLD, sigchld_handler) == SIG_ERR) return -1;
+    struct sigaction sa;
+    sa.sa_handler = sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_NOCLDSTOP;
+    if(sigaction(SIGCHLD, &sa, NULL)) return -1;
     return 0;
 }
 
@@ -378,7 +382,11 @@ static void default_terminate_handler(int sig)
 
 int libcomcom_set_default_terminate(void)
 {
-    if(signal(SIGTERM, default_terminate_handler) == SIG_ERR) return -1;
-    if(signal(SIGINT , default_terminate_handler) == SIG_ERR) return -1;
+    struct sigaction sa;
+    sa.sa_handler = default_terminate_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if(sigaction(SIGTERM, &sa, NULL)) return -1;
+    if(sigaction(SIGINT , &sa, NULL)) return -1;
     return 0;
 }

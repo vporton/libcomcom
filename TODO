@@ -1,5 +1,3 @@
-signal() -> sigaction().
-
 Support for stderr.
 
 If the called program closed its stdout but not yet exited, return its output
