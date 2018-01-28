@@ -377,7 +377,6 @@ int libcomcom_destroy(void)
     if(myclose(self[WRITE_END])) {
         return -1;
     }
-    /* TODO: unset signal handlers */
     return 0;
 }
 
@@ -407,6 +406,5 @@ int libcomcom_reset_default_terminate(void)
     sa.sa_flags = 0;
     if(sigaction(SIGTERM, &sa, NULL)) return -1;
     if(sigaction(SIGINT , &sa, NULL)) return -1;
-    if(sigaction(SIGCHLD, &old_sigchld, NULL)) return -1;
     return 0;
 }
