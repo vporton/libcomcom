@@ -106,8 +106,13 @@ typedef struct my_process_t {
 
 my_process_t process = { -1, {-1, -1}, {-1, -1}, {-1, -1}, NULL, 0, NULL, 0 };
 
-void sigchld_handler(int sig)
+struct sigaction old_sigchld;
+
+void sigchld_handler(int sig, siginfo_t *info, void *context)
 {
+    if(info->si_pid != process.pid ||
+            (info->si_code != CLD_EXITED && info->si_code != CLD_KILLED))
+        return;
     const char c = 'e';
     int wstatus;
     int len, res;
@@ -119,16 +124,17 @@ void sigchld_handler(int sig)
         res = wait(&wstatus); /* otherwise the child becomes a zombie */
     } while(res == -1 && errno == EINTR);
     errno = old_errno;
+
 }
 
 int libcomcom_init(void)
 {
     if(pipe(self)) return -1;
     struct sigaction sa;
-    sa.sa_handler = sigchld_handler;
+    sa.sa_sigaction = sigchld_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_NOCLDSTOP;
-    if(sigaction(SIGCHLD, &sa, NULL)) return -1;
+    sa.sa_flags = SA_SIGINFO|SA_NOCLDSTOP;
+    if(sigaction(SIGCHLD, &sa, &old_sigchld)) return -1;
     return 0;
 }
 
@@ -362,11 +368,7 @@ int libcomcom_terminate(void)
 
 int libcomcom_destroy(void)
 {
-    struct sigaction sa;
-    sa.sa_handler = SIG_DFL;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if(sigaction(SIGCHLD, &sa, NULL)) return -1;
+    if(sigaction(SIGCHLD, &old_sigchld, NULL)) return -1;
 
     if(myclose(self[READ_END])) {
         myclose(self[WRITE_END]);
