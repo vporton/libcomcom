@@ -33,6 +33,7 @@ void setup(void)
 
 void teardown(void)
 {
+    libcomcom_reset_default_terminate();
     libcomcom_destroy();
 }
 

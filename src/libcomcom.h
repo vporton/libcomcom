@@ -70,6 +70,14 @@ int libcomcom_terminate(void);
  */
 int libcomcom_set_default_terminate(void);
 
+/**
+ * Uninstall SIGTERM and SIGINT handler which calls libcomcom_terminate().
+ * If your program needs to handle SIGTERM or SIGINT in another way,
+ * use libcomcom_terminate() instead.
+ * @return 0 on success and -1 on error (also sets `errno`).
+ */
+int libcomcom_reset_default_terminate(void);
+
 #ifdef __cplusplus
 }
 #endif

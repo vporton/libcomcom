@@ -362,6 +362,12 @@ int libcomcom_terminate(void)
 
 int libcomcom_destroy(void)
 {
+    struct sigaction sa;
+    sa.sa_handler = SIG_DFL;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if(sigaction(SIGCHLD, &sa, NULL)) return -1;
+
     if(myclose(self[READ_END])) {
         myclose(self[WRITE_END]);
         return -1;
@@ -384,6 +390,17 @@ int libcomcom_set_default_terminate(void)
 {
     struct sigaction sa;
     sa.sa_handler = default_terminate_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    if(sigaction(SIGTERM, &sa, NULL)) return -1;
+    if(sigaction(SIGINT , &sa, NULL)) return -1;
+    return 0;
+}
+
+int libcomcom_reset_default_terminate(void)
+{
+    struct sigaction sa;
+    sa.sa_handler = SIG_DFL;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if(sigaction(SIGTERM, &sa, NULL)) return -1;
