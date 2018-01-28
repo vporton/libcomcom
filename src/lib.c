@@ -111,12 +111,14 @@ void sigchld_handler(int sig)
     const char c = 'e';
     int wstatus;
     int len, res;
+    int old_errno = errno;
     do {
         len = write(self[WRITE_END], &c, 1);
     } while(len == -1 && errno == EINTR);
     do {
         res = wait(&wstatus); /* otherwise the child becomes a zombie */
     } while(res == -1 && errno == EINTR);
+    errno = old_errno;
 }
 
 int libcomcom_init(void)
@@ -369,7 +371,9 @@ int libcomcom_destroy(void)
 
 static void default_terminate_handler(int sig)
 {
-    libcomcom_set_default_terminate();
+    int old_errno = errno;
+    libcomcom_terminate();
+    errno = old_errno;
 }
 
 int libcomcom_set_default_terminate(void)
