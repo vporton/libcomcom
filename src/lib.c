@@ -368,7 +368,8 @@ int libcomcom_terminate(void)
 {
     libcomcom_destroy();
     if(process.pid == -1) return 0;
-    return kill(process.pid, SIGTERM);
+    kill(process.pid, SIGTERM);
+    return 0;
 }
 
 int libcomcom_destroy(void)
