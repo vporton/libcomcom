@@ -109,11 +109,11 @@ struct sigaction old_sigchld;
 
 void sigchld_handler(int sig, siginfo_t *info, void *context)
 {
-    /* TODO: Should we report an error is CLD_DUMPED? */
     if(info->si_pid == process.pid) {
-            if(info->si_code != CLD_EXITED &&
-               info->si_code != CLD_KILLED &&
-               info->si_code != CLD_DUMPED)
+        /* TODO: Should we report an error is CLD_DUMPED? */
+        if(info->si_code != CLD_EXITED &&
+           info->si_code != CLD_KILLED &&
+           info->si_code != CLD_DUMPED)
         {
             return;
         }
