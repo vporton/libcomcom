@@ -158,9 +158,9 @@ static void clean_pipe(int pipe[2]) {
 
 static int libcomcom_init_base(struct sigaction *old)
 {
-    /* No need to initialize static struct. */
+    old_sigchld.sa_handler = SIG_DFL;
+    /* No need to initialize for static struct. */
     /*
-    old_sigchld.sa_handler = NULL;
     old_sigchld.sa_flags = 0;
     */
     if(pipe(self)) return -1;
