@@ -132,7 +132,8 @@ void sigchld_handler(int sig, siginfo_t *info, void *context)
         if(old_sigchld.sa_flags & SA_SIGINFO) {
             old_sigchld.sa_sigaction(sig, info, context);
         } else {
-            old_sigchld.sa_handler(sig);
+            if(old_sigchld.sa_handler != SIG_IGN && old_sigchld.sa_handler != SIG_DFL)
+                old_sigchld.sa_handler(sig);
         }
     }
 }
