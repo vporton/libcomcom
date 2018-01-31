@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 #include <sys/wait.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -111,36 +110,31 @@ struct sigaction old_sigchld;
 void sigchld_handler(int sig, siginfo_t *info, void *context)
 {
     /* TODO: Should we report an error is CLD_DUMPED? */
-    if(info->si_pid != process.pid ||
-            (info->si_code != CLD_EXITED &&
-             info->si_code != CLD_KILLED &&
-             info->si_code != CLD_DUMPED))
-    {
-        return;
+    if(info->si_pid == process.pid) {
+            if(info->si_code != CLD_EXITED &&
+               info->si_code != CLD_KILLED &&
+               info->si_code != CLD_DUMPED)
+        {
+            return;
+        }
+        const char c = 'e';
+        int wstatus;
+        int len, res;
+        int old_errno = errno;
+        do {
+            len = write(self[WRITE_END], &c, 1);
+        } while(len == -1 && errno == EINTR);
+        do {
+            res = wait(&wstatus); /* otherwise the child becomes a zombie */
+        } while(res == -1 && errno == EINTR);
+        errno = old_errno;
+    } else {
+        if(old_sigchld.sa_flags & SA_SIGINFO) {
+            old_sigchld.sa_sigaction(sig, info, context);
+        } else {
+            old_sigchld.sa_handler(sig);
+        }
     }
-    const char c = 'e';
-    int wstatus;
-    int len, res;
-    int old_errno = errno;
-    do {
-        len = write(self[WRITE_END], &c, 1);
-    } while(len == -1 && errno == EINTR);
-    do {
-        res = wait(&wstatus); /* otherwise the child becomes a zombie */
-    } while(res == -1 && errno == EINTR);
-    errno = old_errno;
-
-}
-
-int libcomcom_init(void)
-{
-    if(pipe(self)) return -1;
-    struct sigaction sa;
-    sa.sa_sigaction = sigchld_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_SIGINFO|SA_NOCLDSTOP;
-    if(sigaction(SIGCHLD, &sa, &old_sigchld)) return -1;
-    return 0;
 }
 
 static int myclose(int fd) {
@@ -160,6 +154,43 @@ static void clean_pipe(int pipe[2]) {
         myclose(pipe[1]);
         pipe[1] = -1;
     }
+}
+
+static int libcomcom_init_base(struct sigaction *old)
+{
+    /* No need to initialize static struct. */
+    /*
+    old_sigchld.sa_handler = NULL;
+    old_sigchld.sa_flags = 0;
+    */
+    if(pipe(self)) return -1;
+    struct sigaction sa;
+    sa.sa_sigaction = sigchld_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_SIGINFO/*|SA_NOCLDSTOP*/;
+    if(sigaction(SIGCHLD, &sa, old)) {
+        int save_errno = errno;
+        clean_pipe(self);
+        errno = save_errno;
+        return -1;
+    }
+    return 0;
+}
+
+int libcomcom_init(void)
+{
+    return libcomcom_init_base(NULL);
+}
+
+int libcomcom_init_stratum(void)
+{
+    return libcomcom_init_base(&old_sigchld);
+}
+
+int libcomcom_init2(struct sigaction *old)
+{
+    old_sigchld = *old;
+    return libcomcom_init_base(NULL);
 }
 
 static void clean_process(my_process_t *process) {

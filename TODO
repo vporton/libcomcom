@@ -9,9 +9,4 @@ SIGKILL for the subprocess if: a. it timeouts; b. poll() returns -1.
 
 Asynchronous communication with the spawned process.
 
-Pass old SIGCHLD handler in struct sigaction. Use it both to be called from our
-handler and to restore the old handler upon de-initialization.
-WARNING: Old handler obtained by sigaction() may be unspecified if the last
-handler was assigned by signal() (not sigaction()).
-
 Reduce the number of realloc() calls by allocating buffers with a reserve.

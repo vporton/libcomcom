@@ -25,12 +25,36 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <signal.h>
 
 /**
  * Initialize the library. Call it before libcomcom_run_command().
+ * Note that this erases the old SIGCHLD handler (if any).
  * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_init(void);
+
+/**
+ * Initialize the library. Call it before libcomcom_run_command().
+ * The `old` signal action is stored internally (and restored by
+ * libcomcom_destroy() or libcomcom_terminate()).
+ * The old signal handler (the one obtained from `old` variable) is also
+ * called from our SIGCHLD handler.
+ * @return 0 on success and -1 on error (also sets `errno`).
+ */
+int libcomcom_init2(struct sigaction *old);
+
+/**
+ * Initialize the library. Call it before libcomcom_run_command().
+ * This function is like libcomcom_init2(), but the old SIGCHLD signal handler
+ * is obtained automatically (by sigaction() library function).
+ *
+ * WARNING: If before calling this SIGCHLD handler was set by signal()
+ * (not by sigaction()), then this function does not work (leads to undefined
+ * behavior)!
+ * @return 0 on success and -1 on error (also sets `errno`).
+ */
+int libcomcom_init_stratum(void);
 
 /**
  * Runs an OS command.
