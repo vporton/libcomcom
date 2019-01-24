@@ -6,7 +6,7 @@ datadir=@datadir@
 includedir=@includedir@/liblibcomcom-0.0.1
 
 Name: liblibcomcom
-Description: Sample library created by Anjuta project wizard.
+Description: Command Communication Library. Spawn an OS command with given input and receive its output.
 Version: @VERSION@
 Requires: 
 Libs: -L${libdir} -llibcomcom

@@ -260,7 +260,7 @@ int libcomcom_run_command (const char *input, size_t input_len,
 
         /* If reached here, it is execvpe() failure. */
         /* No need to check EINTR, because there is no signal handlers. */
-        write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
+        (void)write(process.child[WRITE_END], &errno, sizeof(errno)); /* deliberately don't check error */
         _exit(EX_OSERR);
         break;
 

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Created by Anjuta application wizard.
 
-AC_INIT(libcomcom, 0.0.5)
+AC_INIT(libcomcom, 0.0.6)
 
 AC_CONFIG_MACRO_DIR([.])
 
@@ -14,12 +14,14 @@ AM_SILENT_RULES([yes])
 AC_USE_SYSTEM_EXTENSIONS
 
 AC_PROG_CC
+AC_SUBST(GCC)
+AM_CONDITIONAL([GCC], [test xGCC != ''])
 
 LT_INIT
 
 AC_CHECK_DECLS([execvpe], [], [], [[#include <unistd.h>]])
 
-PKG_CHECK_MODULES([CHECK], [check >= 0.10])
+PKG_CHECK_MODULES([CHECK], [check >= 0.10], [], [])
 
 DX_INIT_DOXYGEN([LibComCom], [Doxyfile], [doc])
 

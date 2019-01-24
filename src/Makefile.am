@@ -7,9 +7,11 @@ AM_CPPFLAGS = \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\"
 
-AM_CFLAGS =\
-	 -Wall -Werror\
-	 -g
+if GCC
+# GCC 8.2.0 prints unused result warning even when explicitly cast to void
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89031
+AM_CFLAGS = -Wall -Werror -Wno-error=unused-result
+endif
 
 lib_LTLIBRARIES = libcomcom.la
 
