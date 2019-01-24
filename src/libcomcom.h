@@ -50,8 +50,8 @@ int libcomcom_init2(struct sigaction *old);
  * is obtained automatically (by sigaction() library function).
  *
  * WARNING: If before calling this SIGCHLD handler was set by signal()
- * (not by sigaction()), then this function does not work (leads to undefined
- * behavior)!
+ * (not by sigaction()), then this function may not work (leads to undefined
+ * behavior) on some non-Unix systems.
  * @return 0 on success and -1 on error (also sets `errno`).
  */
 int libcomcom_init_stratum(void);
