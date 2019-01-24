@@ -2,7 +2,16 @@
 
 Spawn an OS command with given input and receive its output.
 
+The main feature of this library is deadlock avoidance.
+(Deadlock in this case is when your program can't write to the input
+of another program because of waiting for its output which does not
+happen because of no input, so a vicious circle leading to infinite
+waiting time.)
+
 API docs:
 https://vporton.github.io/libcomcom-docs/
 
 The current version is alpha.
+
+Related software http://libpipeline.nongnu.org (seem NOT to support
+deadlock avoidance).
