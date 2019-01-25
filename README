@@ -17,7 +17,8 @@ Related software http://libpipeline.nongnu.org (seem NOT to support
 deadlock avoidance).
 
 WARNING: The current version of this library does not work on Windows
-because it uses `fork()` function.
+because it uses `fork()` function. (However, it probably works with
+Cygwin, not tested.)
 
 To support this project:
 - Send money to PayPal porton@narod.ru or https://paypal.me/victorporton
