@@ -15,3 +15,6 @@ The current version is alpha.
 
 Related software http://libpipeline.nongnu.org (seem NOT to support
 deadlock avoidance).
+
+WARNING: The current version of this library does not work on Windows
+because it uses `fork()` function.
