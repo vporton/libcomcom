@@ -18,7 +18,9 @@ deadlock avoidance).
 
 WARNING: The current version of this library does not work on Windows
 because it uses `fork()` function. (However, it probably works with
-Cygwin, not tested.)
+Cygwin and/or WSL, not tested.)
+See also modern.ie to get Windows and visualstudio.com to get free
+Visual Studio.
 
 To support this project:
 - Send money to PayPal porton@narod.ru or https://paypal.me/victorporton
