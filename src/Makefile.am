@@ -29,7 +29,7 @@ include_HEADERS = \
 	libcomcom.h
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libcomcom-0.0.1.pc
+pkgconfig_DATA = libcomcom-0.1.0.pc
 
 EXTRA_DIST = \
 	libcomcom-0.0.1.pc.in

@@ -97,7 +97,7 @@ int libcomcom_terminate(void);
  * Install SIGTERM and SIGINT handler which calls libcomcom_terminate().
  * @return 0 on success and -1 on error (also sets `errno`).
  * 
- * You are recommended to use int libcomcom_set_default_terminate2()
+ * You are recommended to use libcomcom_set_default_terminate2()
  * instead.
  */
 int libcomcom_set_default_terminate(void);
@@ -106,7 +106,7 @@ int libcomcom_set_default_terminate(void);
  * Uninstall SIGTERM and SIGINT handler which calls libcomcom_terminate().
  * @return 0 on success and -1 on error (also sets `errno`).
  * 
- * You are recommended to use int libcomcom_reset_default_terminate2()
+ * You are recommended to use libcomcom_reset_default_terminate2()
  * instead.
  */
 int libcomcom_reset_default_terminate(void);
