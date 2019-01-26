@@ -256,7 +256,10 @@ int libcomcom_run_command (const char *input, size_t input_len,
             return -1;
         }
 
-        execvpe(file, argv, envp);
+        if(envp)
+            execvpe(file, argv, envp);
+        else
+            execvp(file, argv);
 
         /* If reached here, it is execvpe() failure. */
         /* No need to check EINTR, because there is no signal handlers. */

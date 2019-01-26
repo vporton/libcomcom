@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl Created by Anjuta application wizard.
 
-AC_INIT(libcomcom, 0.0.6)
+AC_INIT(libcomcom, 0.0.7)
 
 AC_CONFIG_MACRO_DIR([.])
 
@@ -28,7 +28,7 @@ DX_INIT_DOXYGEN([LibComCom], [Doxyfile], [doc])
 
 AC_OUTPUT([
 Makefile
-src/libcomcom-0.0.1.pc
+src/libcomcom-0.0.7.pc
 src/Makefile
 tests/Makefile
 ])
