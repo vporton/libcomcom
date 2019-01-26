@@ -105,7 +105,7 @@ typedef struct my_process_t {
 
 my_process_t process = { -1, {-1, -1}, {-1, -1}, {-1, -1}, NULL, 0, NULL, 0 };
 
-struct sigaction old_sigchld;
+struct sigaction old_sigchld, old_sigterm, old_sigint;
 
 void sigchld_handler(int sig, siginfo_t *info, void *context)
 {
@@ -167,7 +167,10 @@ static int libcomcom_init_base(struct sigaction *old)
     if(pipe(self)) return -1;
     struct sigaction sa;
     sa.sa_sigaction = sigchld_handler;
-    sigemptyset(&sa.sa_mask);
+    if(old)
+        sa.sa_mask = old->sa_mask;
+    else
+        sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_SIGINFO/*|SA_NOCLDSTOP*/;
     if(sigaction(SIGCHLD, &sa, old)) {
         int save_errno = errno;
@@ -421,19 +424,36 @@ int libcomcom_destroy(void)
     return 0;
 }
 
-static void default_terminate_handler(int sig)
+static void default_terminate_handler(int sig, siginfo_t *info, void *context)
 {
     int old_errno = errno;
     libcomcom_terminate();
     errno = old_errno;
+
+    struct sigaction *old = sig == SIGTERM ? &old_sigterm : &old_sigint;
+    if(old->sa_flags & SA_SIGINFO) {
+        old->sa_sigaction(sig, info, context);
+    } else {
+        if(old->sa_handler == SIG_DFL)
+            _exit(128 + sig);
+        else if(old->sa_handler != SIG_IGN)
+            old->sa_handler(sig);
+    }
 }
 
 int libcomcom_set_default_terminate(void)
 {
+    old_sigterm.sa_handler = SIG_DFL;
+    old_sigint.sa_handler = SIG_DFL;
+    /*sigemptyset(&old_sigterm.sa_mask);*/
+    old_sigterm.sa_flags = 0;
+    /*sigemptyset(&old_sigint.sa_mask);*/
+    old_sigint.sa_flags = 0;
+
     struct sigaction sa;
-    sa.sa_handler = default_terminate_handler;
+    sa.sa_sigaction = default_terminate_handler;
     sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
+    sa.sa_flags = SA_SIGINFO;
     if(sigaction(SIGTERM, &sa, NULL)) return -1;
     if(sigaction(SIGINT , &sa, NULL)) return -1;
     return 0;
@@ -447,5 +467,37 @@ int libcomcom_reset_default_terminate(void)
     sa.sa_flags = 0;
     if(sigaction(SIGTERM, &sa, NULL)) return -1;
     if(sigaction(SIGINT , &sa, NULL)) return -1;
+    return 0;
+}
+
+static int _libcomcom_set_default_terminate2_impl(int sig, struct sigaction *old) {
+    /* default initialization (for the case if sigaction() fails */
+    old->sa_handler = SIG_DFL;
+    /* No need to initialize for static struct. */
+    /*
+    old->sa_flags = 0;
+    */
+    struct sigaction sa;
+    sa.sa_sigaction = default_terminate_handler;
+    /*sigemptyset(&sa.sa_mask);*/
+    sa.sa_mask = old->sa_mask;
+    sa.sa_flags = SA_SIGINFO;
+    if(sigaction(sig, &sa, old)) return -1;
+    return 0;
+}
+
+int libcomcom_set_default_terminate2(void)
+{
+    if(_libcomcom_set_default_terminate2_impl(SIGTERM, &old_sigterm))
+        return -1;
+    if(_libcomcom_set_default_terminate2_impl(SIGINT, &old_sigint))
+        return -1;
+    return 0;
+}
+
+int libcomcom_reset_default_terminate2(void)
+{
+    if(sigaction(SIGTERM, &old_sigterm, NULL)) return -1;
+    if(sigaction(SIGINT, &old_sigint, NULL)) return -1;
     return 0;
 }

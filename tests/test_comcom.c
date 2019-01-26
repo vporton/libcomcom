@@ -28,12 +28,12 @@
 void setup(void)
 {
     libcomcom_init();
-    libcomcom_set_default_terminate();
+    libcomcom_set_default_terminate2();
 }
 
 void teardown(void)
 {
-    libcomcom_reset_default_terminate();
+    libcomcom_reset_default_terminate2();
     libcomcom_destroy();
 }
 
